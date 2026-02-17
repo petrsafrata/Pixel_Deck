@@ -1,0 +1,307 @@
+# ============================================================
+# Pixel Display - main configuration (YAML)
+# ============================================================
+# Notes:
+# - Values from `scene_defaults` are used as fallbacks for each scene
+#   unless the scene overrides them in `scenes.<name>`.
+# - Colors are hex strings: "#RRGGBB" (IMPORTANT: only ONE '#')
+# - Timezone should be a valid IANA tz database key (e.g. "Europe/Prague")
+# ============================================================
+
+display:
+  # Logical canvas resolution (your LED matrix size)
+  width: 64
+  height: 64
+
+  # ----------------------------------------------------------
+  # Hardware / RGB Matrix driver settings (rpi-rgb-led-matrix)
+  # These map to runtime options for the underlying driver.
+  # ----------------------------------------------------------
+  hardware_mapping: "adafruit-hat-pwm"
+  rows: 64
+  cols: 64
+  chain_length: 1
+  parallel: 1
+  pwm_bits: 11
+
+  # PWM / brightness tuning
+  pwm_lsb_nanoseconds: 130
+  brightness: 70
+  gpio_slowdown: 2
+  scan_mode: 1
+  disable_hardware_pulsing: false
+
+  # Target render FPS for the whole application loop
+  target_fps: 30
+
+scene_defaults:
+  # ----------------------------------------------------------
+  # Default values applied to ALL scenes (unless overridden)
+  # ----------------------------------------------------------
+  duration_s: 10                # How long the scene stays active in rotate mode
+  fps: 30                       # Scene update tick rate (if your engine uses it per-scene)
+  background: "#000000"         # Background color (if the renderer clears using it)
+  timezone: "Europe/Prague"
+
+  # Default font settings used by text-based scenes
+  font:
+    path: "assets/fonts/DejaVuSans.ttf"
+    size: 12
+    primary_color: "#FFFFFF"
+    secondary_color: "#AAAAAA"
+
+app:
+  # ----------------------------------------------------------
+  # Application behaviour
+  # ----------------------------------------------------------
+  mode: "rotate"                # rotate | single
+  render: "window"              # window | matrix
+  log_level: "INFO"             # DEBUG | INFO | WARNING | ERROR
+
+  # If mode=single, this scene is used; if mode=rotate, it's typically ignored
+  active_scene: "clock"
+
+  # Rotation order in rotate mode (scene keys must exist in `scenes:`)
+  scene_order: [ "clock", "images", ]
+
+  # Scene transition settings (if implemented)
+  transition:
+    type: "cut"                 # Only cut in this version
+    fade_ms: 0
+
+scenes:
+  # ==========================================================
+  # BITCOIN (Coingecko)
+  # ==========================================================
+  bitcoin:
+    enabled: true
+    background: "#000000"
+
+    # Override scene duration + refresh interval
+    duration_s: 15
+    refresh_s: 60             # Data refresh (seconds)
+
+    font:
+      primary_color: "##FFFFFF"   # Price text color
+      secondary_color: "#F7931A"  # Change (%) color
+
+    layout:
+      # Top logo config
+      logo:
+        path: "assets/images/logo/btc.png"
+        size: 32
+        center: true
+        x: 0                  # Used only when center=false
+        y: 4
+
+      # Price + change text block config
+      text:
+        center: true
+        x: 0                  # Used only when center=false
+        y: 42
+        scale: 1              # Preferred scale (scene may auto-reduce if text is too wide)
+        spacing: 1            # Letter spacing
+        show_change: true
+        change_on_new_line: true   # If true, change is printed below price
+
+    data:
+      provider: "coingecko"   # Currently supported: coingecko
+      currency: "czk"
+      coin_id: "bitcoin"
+      locale: "cs_CZ"         # Reserved for future formatting
+
+  # ==========================================================
+  # CLOCK
+  # ==========================================================
+  clock:
+    enabled: true
+    background: "#000000"
+
+    duration_s: 2
+    format: "%H:%M"           # Python strftime format
+    show_date: false          # Reserved for future (if you add date rendering)
+
+    font:
+      primary_color: "##34c242"
+      secondary_color: "##34c242"
+
+    layout:
+      # NOTE: in the standardized ClockScene, text is centered horizontally;
+      # `x` is kept for future extension but currently not used by rendering.
+      time:
+        x: 6
+        y: 22
+        font_size: 18
+
+      # Reserved for future date rendering
+      date:
+        x: 6
+        y: 44
+        font_size: 10
+
+  # ==========================================================
+  # CALENDAR (DD.MM + YYYY)
+  # ==========================================================
+  calendar:
+    enabled: true
+    background: "#000000"
+
+    duration_s: 15
+    refresh_s: 30               # Reserved for future
+
+    font:
+      primary_color: "##FFFFFF"   # Date (DD.MM)
+      secondary_color: "#bf230b"  # Year (YYYY)
+
+    layout:
+      logo:
+        path: "assets/images/logo/calendar.png"
+        size: 32
+        center: true
+        x: 0                    # Used only when center=false
+        y: 4
+
+      date:
+        center: true
+        y: 38
+        scale: 2
+
+      year:
+        center: true
+        y: 54
+        scale: 1
+
+  # ==========================================================
+  # WEATHER (Open-Meteo)
+  # ==========================================================
+  weather:
+    enabled: true
+    background: "#000000"
+
+    duration_s: 15
+    refresh_s: 600              # Data refresh (seconds) => 10 minutes
+
+    font:
+      primary_color: "#FFFFFF"     # Current temperature
+      secondary_color: "#AAAAAA"   # Min/Max
+
+    data:
+      provider: "open_meteo"       # Currently supported: open_meteo
+      latitude: 50.0755            # Prague (change as needed)
+      longitude: 14.4378
+      timezone: "Europe/Prague"
+
+    layout:
+      icon:
+        size: 32
+        center: true
+        x: 0                     # Used only when center=false
+        y: 2
+
+        # Mapping from internal icon keys to image files
+        icons:
+          sun: "assets/images/weather/sun.png"
+          cloud: "assets/images/weather/cloud.png"
+          rain: "assets/images/weather/rain.png"
+
+      temp:
+        center: true
+        y: 36
+        scale: 2
+
+      minmax:
+        center: true
+        y: 54
+        scale: 1
+
+
+  # ==========================================================
+  # S&P 500 (Stooq CSV)
+  # ==========================================================
+  sp500:
+    enabled: true
+    background: "#000000"
+
+    duration_s: 12
+    refresh_s: 300              # Data refresh (seconds) => 5 minutes
+
+    font:
+      primary_color: "#FFFFFF"     # Price
+      secondary_color: "#AAAAAA"   # Neutral / fallback color
+
+    layout:
+      logo:
+        path: "assets/images/logo/sp500.png"
+        size: 28
+        center: true
+        y: 4
+
+      price:
+        center: true
+        y: 34
+        scale: 2
+
+      change:
+        center: true
+        y: 54
+        scale: 1
+
+    data:
+      provider: "stooq"             # Currently supported: stooq
+      symbol: "SPY.US"              # Example: "SPY.US" (or your preferred symbol)
+
+  # ==========================================================
+  # TEXT (dynamic wrap)
+  # ==========================================================
+  text:
+    enabled: true
+    background: "#000000"
+
+    duration_s: 10
+    fps: 15                     # Lower FPS is OK for static text scenes
+
+    font:
+      primary_color: "#FFFFFF"
+      secondary_color: "#AAAAAA"
+
+    text:
+      value: "zivot je life"
+
+      # Maximum number of lines after word-wrapping
+      max_lines: 4
+
+      # Preferred scale (scene will reduce down to 1 if it doesn't fit)
+      scale: 2
+
+      # Letter spacing (pixels between glyph columns)
+      spacing: 1
+
+      # Vertical gap between lines (in pixels, applied after scaling)
+      line_gap: 2
+
+      # Horizontal alignment: left | center
+      align: "center"
+
+  # ==========================================================
+  # IMAGES (random image on scene enter)
+  # ==========================================================
+  images:
+    enabled: true
+    background: "#000000"
+
+    duration_s: 15
+    fps: 10                     # Lower FPS is enough (single static image)
+
+    images:
+      # Image selection mode
+      mode: "random"            # Only random in this version
+
+      # Prevent showing the same image twice in a row (if possible)
+      avoid_repeat: true
+
+      # Target size in pixels (for a 64x64 display keep 64)
+      size: 64
+
+      # List of image files to choose from
+      files:
+        - "assets/images/canvas/vangogh.png"

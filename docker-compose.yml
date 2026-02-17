@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  pixel-deck:
+    build: .
+    container_name: pixel-deck
+    restart: unless-stopped
+
+    # Required for GPIO + /dev/mem access (rpi-rgb-led-matrix)
+    privileged: true
+
+    # Some setups work without this, but it helps ensure mem access
+    devices:
+      - "/dev/mem:/dev/mem"
+
+    volumes:
+      - ./config.yml:/app/config.yml:ro
+      - ./assets:/app/assets:ro
+
+    environment:
+      - TZ=Europe/Prague
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
