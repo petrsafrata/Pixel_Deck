@@ -12,6 +12,7 @@ from src.scenes.weather import WeatherScene
 from src.scenes.sp500 import SP500Scene
 from src.scenes.text import TextScene
 from src.scenes.images_random import ImagesRandomScene
+from pathlib import Path
 
 from src.renderer.renderer_factory import create_renderer
 
@@ -111,6 +112,16 @@ def run_rotate(cfg: Config, reg: SceneRegistry, renderer):
             run_scene(scene, renderer, duration_s=duration)
 
 
+def get_version() -> str:
+    project_root = Path(__file__).resolve().parent
+    version_file = project_root / "VERSION"
+
+    if version_file.is_file():
+        return version_file.read_text(encoding="utf-8").strip()
+
+    return "0.0.0"
+
+
 def main():
     renderer = None
     try:
@@ -121,6 +132,7 @@ def main():
         renderer = build_renderer(cfg)
 
         mode = cfg.app.get("mode", "single")
+        logger.info("Pixel Deck v%s starting...", get_version())
         logger.info("Mode: %s", mode)
 
         if mode == "single":
