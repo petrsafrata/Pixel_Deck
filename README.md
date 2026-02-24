@@ -244,7 +244,7 @@ app:
 ## 🖥 Installation (Development)
 
 ```bash
-git clone https://github.com/yourname/pixel-deck.git
+git clone https://github.com/petrsafrata/pixel-deck.git
 cd pixel-deck
 python -m venv .venv
 source .venv/bin/activate
