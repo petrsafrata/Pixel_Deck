@@ -1,27 +1,23 @@
-version: "3.9"
-
 services:
   pixel-deck:
-    build: .
-    container_name: pixel-deck
-    restart: unless-stopped
+    build:
+      context: .                            # Path to the build context (project root)
+      dockerfile: Dockerfile                # Dockerfile used to build the image
+    container_name: pixel-deck              # Name of the container
 
-    # Required for GPIO + /dev/mem access (rpi-rgb-led-matrix)
-    privileged: true
-
-    # Some setups work without this, but it helps ensure mem access
+    privileged: true                        # Grants extended privileges (required for direct GPIO access on Raspberry Pi)
     devices:
-      - "/dev/mem:/dev/mem"
-
-    volumes:
-      - ./config.yml:/app/config.yml:ro
-      - ./assets:/app/assets:ro
+      - "/dev/mem:/dev/mem"                 # Maps physical memory device (needed for low-level LED matrix control)
 
     environment:
-      - TZ=Europe/Prague
+      TZ: Europe/Prague                     # Sets container timezone
 
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+    working_dir: /app                       # Working directory inside the container
+
+    volumes:
+      - ./config.yml:/app/config.yml:ro     # Mounts configuration file (read-only)
+      - ./assets:/app/assets:ro             # Mounts assets (images, fonts, etc.) (read-only)
+
+    command: ["python3", "main.py"]         # Command executed when container starts
+
+    restart: "no"                           # Do not automatically restart the container on exit

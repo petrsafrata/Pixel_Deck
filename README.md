@@ -1,16 +1,17 @@
 # 🖥️ Pixel Deck
 
-![Python](https://img.shields.io/badge/Python-3.11+-blue)
-![License](https://img.shields.io/badge/License-Apache%202.0-green)
-![Open Source](https://img.shields.io/badge/Open%20Source-Yes-brightgreen)
-![Platform](https://img.shields.io/badge/Platform-Raspberry%20Pi%204+-red)
-![Status](https://img.shields.io/badge/Status-Active-success)
+![Python](https://img.shields.io/badge/Python-3.11+-blue?logo=python&logoColor=white)
+![License](https://img.shields.io/badge/License-Apache%202.0-green?logo=apache&logoColor=white)
+![Open Source](https://img.shields.io/badge/Open%20Source-Yes-brightgreen?logo=opensourceinitiative&logoColor=white)
+![Platform](https://img.shields.io/badge/Platform-Raspberry%20Pi%204+-red?logo=raspberrypi&logoColor=white)
+![Status](https://img.shields.io/badge/Status-Active-success?logo=github&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-blue?logo=docker&logoColor=white)
 
 ---
 
 ## 📌 Project Description
 
-**Pixel Deck** is a modular Python application designed to control a 64×64 RGB LED matrix (e.g. running on a Raspberry Pi with `rpi-rgb-led-matrix`).  
+**Pixel Deck** is a modular Python application designed to control a 64×64 RGB LED matrix (e.g. running on a Raspberry Pi with [`rpi-rgb-led-matrix`](https://github.com/hzeller/rpi-rgb-led-matrix/tree/master)).  
 
 It renders dynamic scenes such as clock, weather, stock market data, cryptocurrency prices, images, and custom text.
 
@@ -19,7 +20,6 @@ The system is built with clean scene abstraction, centralized configuration, and
 ---
 
 ## 🎯 Project Goals
-
 - Provide a clean and extensible scene-based LED display framework
 - Enable easy configuration via YAML
 - Support Raspberry Pi deployment via Docker
@@ -29,10 +29,70 @@ The system is built with clean scene abstraction, centralized configuration, and
 
 ---
 
-## 🛠 Technologies Used
+## 🔌 Setup
+
+### 🛠 Used Technologies
 - Python 3.11+
-- ` rpi-rgb-led-matrix`  (via Raspberry Pi)
+- `rpi-rgb-led-matrix`  (via Raspberry Pi)
 - Docker & Docker Compose
+
+### 🧩 Used Hardware
+- Raspberry Pi 4 / 5
+- Adafruit RGB Matrix HAT
+- 64×64 RGB LED panel (HUB75, typically 1/32 scan)
+
+---
+
+## 🔗 Wiring Overview (Based on Adafruit Documentation)
+This setup follows the official guide from Adafruit:  
+https://learn.adafruit.com/adafruit-rgb-matrix-plus-real-time-clock-hat-for-raspberry-pi/matrix-setup
+
+### 🧩 Step 1 – Mount the HAT
+
+- Place the **Adafruit RGB Matrix HAT** directly onto the Raspberry Pi GPIO header
+- Ensure all pins are properly aligned
+
+### ⚡ Step 2 – Power the Panel
+
+<img src="https://cdn-learn.adafruit.com/assets/assets/000/051/027/medium640/led_matrices_leds_plugspades.jpg?1518646189" width="500"/>
+
+- Use a **separate 5V power supply**
+- Connect:
+  - VCC → panel power input
+  - GND → panel ground
+
+> [!Important]
+> Do NOT power the panel from Raspberry Pi
+> Always share **common ground** between PSU and Raspberry Pi
+
+### 🔌 Step 3 – Connect the HUB75 Cable
+
+<img src="https://cdn-learn.adafruit.com/assets/assets/000/051/028/medium640/led_matrices_leds_plugidc.jpg?1518646614" width="500"/>
+
+- Connect the ribbon cable:
+  - HAT → panel **INPUT**
+- Pay attention to:
+  - Arrow direction on panel (IN → OUT)
+  - Red stripe on cable = Pin 1
+
+### 🔁 Signal Flow
+
+***Raspberry Pi → HAT → HUB75 Cable → LED Panel***
+
+### 🔧 E Line Fix (Important)
+
+Some 64×64 panels require remapping:
+
+- The **E line must be connected to GPIO 8**
+- Often requires **manual rewiring or soldering**
+
+
+<img src="https://cdn-learn.adafruit.com/assets/assets/000/063/008/medium640/led_matrices_addr-e-pad.jpg?1538677495" width="500"/>
+
+**Symptoms without fix:**
+- Shifted rows
+- Broken rendering
+- Random flickering
 
 ---
 
@@ -156,6 +216,8 @@ Standardized internal structure:
 
 This guarantees consistency across all scenes.
 
+---
+
 ## ⚙ Configuration
 
 Configuration is handled via `config.yml`
@@ -262,16 +324,100 @@ python main.py
 
 Pixel Deck is designed to run on Raspberry Pi using Docker.
 
-
-Download the current release and run:
+Download the current release, build image and run:
 ```bash
-docker compose up -d
+docker build -t pixel-deck
+docker compose up
 ```
 
-Ensure:
+### 🔐 Requirements & Permissions
+
 - You run on Raspberry Pi
 - Hardware mapping matches your matrix
-- SPI and GPIO access are enabled
+- Docker container must run in `privileged` mode for:
+    - SPI and GPIO access
+- The container must have access to `/dev/mem:/dev/mem` for:
+    - Mapping physical memory device (needed for low-level LED matrix control)
+- Module `snd_bcm2835` must be disabled in RPi:
+    - This module uses hardware resources that interfere with the LED matrix
+    - Disable audio in config:
+    ```bash
+    sudo nano /boot/config.txt
+    dtparam=audio=off
+    ```
+    - Create or edit blacklist config:
+    ```bash
+    sudo nano /etc/modprobe.d/blacklist-snd.conf
+    blacklist snd_bcm2835
+    ```
+
+---
+
+## 🧠 Why Dockerfile Patches Pillow
+
+The `rpi-rgb-led-matrix` Python bindings use an **unsafe fast-path for Pillow images**, which accesses image memory directly for better performance.  
+
+In this project (especially inside Docker), this caused:
+- build instability of `rgbmatrix.core`
+- rendering glitches and incorrect colors
+- unpredictable crashes
+
+To ensure stability, the Dockerfile:
+- disables the unsafe Pillow fast-path (replaces it with a safe stub)
+- forces `SetImage(..., unsafe=False)` by default
+- explicitly blocks the unsafe mode
+
+### Tradeoff
+
+- ✅ stable and predictable rendering  
+- ❌ slightly lower performance  
+
+For Pixel Deck, **stability is more important than raw speed**, so the safe path is enforced.
+
+---
+
+## 🐞 Troubleshooting
+
+### 🎨 Wrong colors
+- Check:
+```yml
+led_rgb_sequence: "RGB"
+```
+- Check power supply
+    - The HAT has a problem with correct color rendering at high brightness, try reducing the brightness or connecting a separate 5VDC input power supply to the HAT
+    ```yml
+    brightness: 40
+    ```
+
+### ⚡ Flickering pixels
+- Increase:
+```yml
+gpio_slowdown: 10
+```
+- Adjust:
+```yml
+pwm_lsb_nanoseconds: 200–300
+```
+
+### 🧱 Distorted output
+- Check resolution:
+```yml
+rows: 64
+cols: 64
+```
+- Verify E → GPIO8
+
+---
+
+## ⚠ Known Issues
+
+- Some panels require manual E-line fix
+- Cheap power supplies cause instability
+- Docker adds slight rendering overhead
+- High brightness may require dual power input
+- Incorrect power supply is the #1 cause of color issues and flickering
+
+---
 
 ## 🤝 Contributing
 

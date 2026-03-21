@@ -15,19 +15,25 @@ class MatrixRendererConfig:
     - width/height are derived from rows/cols/chain_length/parallel
       so users only need to change the hardware parameters in config.yml.
     """
-    hardware_mapping: str = "adafruit-hat-pwm"
+    hardware_mapping: str = "adafruit-hat"
     rows: int = 64
     cols: int = 64
     chain_length: int = 1
     parallel: int = 1
 
-    pwm_bits: int = 11
-    pwm_lsb_nanoseconds: int = 130
+    pwm_bits: int = 8
+    pwm_lsb_nanoseconds: int = 220
     brightness: int = 70
-    gpio_slowdown: int = 2
-    scan_mode: int = 1
-    disable_hardware_pulsing: bool = False
-
+    gpio_slowdown: int = 10
+    scan_mode: int = 0
+    disable_hardware_pulsing: bool = True
+    row_address_type: int = 0
+    multiplexing: int = 0
+    panel_type: str = ""
+    led_rgb_sequence: str = "RGB"
+    pixel_mapper_config: str = ""
+    show_refresh_rate: bool = True
+    limit_refresh_rate_hz: int = 0
 
 class MatrixRenderer:
     """
@@ -36,7 +42,7 @@ class MatrixRenderer:
     Minimal interface expected by gfx helpers:
       - width, height
       - clear()
-      - set_pixel(x, y, r, g, b)
+      - set_pixel(x, y, (r, g, b))
       - present()
 
     Display size is derived from config:
@@ -83,6 +89,14 @@ class MatrixRenderer:
         options.gpio_slowdown = int(self.cfg.gpio_slowdown)
         options.scan_mode = int(self.cfg.scan_mode)
         options.disable_hardware_pulsing = bool(self.cfg.disable_hardware_pulsing)
+        options.row_address_type = int(self.cfg.row_address_type)
+        options.multiplexing = int(self.cfg.multiplexing)
+        options.panel_type = str(self.cfg.panel_type)
+        options.led_rgb_sequence = str(self.cfg.led_rgb_sequence)
+        options.pixel_mapper_config = str(self.cfg.pixel_mapper_config)
+        options.limit_refresh_rate_hz = int(self.cfg.limit_refresh_rate_hz)
+        if self.cfg.show_refresh_rate:
+            options.show_refresh_rate = 1
 
         self._matrix = RGBMatrix(options=options)
         self._canvas = self._matrix.CreateFrameCanvas()
@@ -116,16 +130,26 @@ class MatrixRenderer:
             self.cfg.brightness,
         )
 
-    def clear(self) -> None:
+    def clear(self, bg_rgb: tuple[int, int, int] | None = None) -> None:
         if self._canvas is None:
             return
-        self._canvas.Clear()
 
-    def set_pixel(self, x: int, y: int, r: int, g: int, b: int) -> None:
+        if bg_rgb is None:
+            self._canvas.Clear()
+            return
+
+        r, g, b = bg_rgb
+        for y in range(self.height):
+            for x in range(self.width):
+                self._canvas.SetPixel(x, y, int(r), int(g), int(b))
+
+    def set_pixel(self, x: int, y: int, color: tuple[int, int, int]) -> None:
         if self._canvas is None:
             return
         if x < 0 or y < 0 or x >= self.width or y >= self.height:
             return
+
+        r, g, b = color
         self._canvas.SetPixel(int(x), int(y), int(r), int(g), int(b))
 
     def present(self) -> None:
@@ -135,3 +159,7 @@ class MatrixRenderer:
         if self._matrix is None or self._canvas is None:
             return
         self._canvas = self._matrix.SwapOnVSync(self._canvas)
+
+    def close(self) -> None:
+        if self._matrix is not None:
+            self._matrix.Clear()

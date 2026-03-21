@@ -34,16 +34,16 @@ def draw_text(renderer, x: int, y: int, text: str, color: Color, scale: int = 1,
 
 
 def _draw_glyph(renderer, x: int, y: int, rows: list[int], color: Color, scale: int) -> None:
+    r, g, b = color
     for row_idx, mask in enumerate(rows):
         for col in range(5):
             bit = (mask >> (4 - col)) & 1
             if bit:
-                # scale -> kreslíme blok scale x scale
                 px = x + col * scale
                 py = y + row_idx * scale
                 for dx in range(scale):
                     for dy in range(scale):
-                        renderer.set_pixel(px + dx, py + dy, color)
+                        renderer.set_pixel(px + dx, py + dy, (r, g, b))
 
 
 def draw_image_rgb(renderer, x: int, y: int, rgb_pixels, w: int, h: int, key_color: Optional[Color] = None) -> None:
@@ -63,13 +63,14 @@ def draw_image_rgb(renderer, x: int, y: int, rgb_pixels, w: int, h: int, key_col
                 continue
             renderer.set_pixel(x + i, y + j, (r, g, b))
 
+
 def measure_text(text: str, scale: int = 1, spacing: int = 1) -> tuple[int, int]:
-    # width: (5 px per character + spacing) * scale, the last spacing is not counted
     if not text:
         return 0, 0
     w = (len(text) * 5 + (len(text) - 1) * spacing) * scale
     h = 7 * scale
     return w, h
+
 
 def draw_image_rgba(renderer, x: int, y: int, rgba_pixels, w: int, h: int, alpha_threshold: int = 10) -> None:
     """

@@ -1,59 +1,94 @@
-# ------------------------------------------------------------
-# Stage 1: build rpi-rgb-led-matrix + python bindings
-# ------------------------------------------------------------
-FROM python:3.11-slim AS builder
+# Base image with Python 3.13 on Debian Bookworm
+FROM python:3.13-bookworm
 
-WORKDIR /build
+# Environment configuration
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+ENV TZ=Europe/Prague
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONPATH=/opt/rpi-rgb-led-matrix/bindings/python/samples
 
+# Install system dependencies required for building and running rpi-rgb-led-matrix and related libraries
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     make \
     g++ \
-    python3-dev \
+    gcc \
     pkg-config \
+    python3-dev \
+    python-dev-is-python3 \
+    cython3 \
+    cmake \
+    ninja-build \
+    tzdata \
     libjpeg-dev \
     libpng-dev \
-    ca-certificates \
- && rm -rf /var/lib/apt/lists/*
+    libfreetype6-dev \
+    libasound2-dev \
+    libportmidi-dev \
+    libsdl2-dev \
+    libsdl2-image-dev \
+    libsdl2-mixer-dev \
+    libsdl2-ttf-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# Build hzeller/rpi-rgb-led-matrix
-RUN git clone --depth 1 https://github.com/hzeller/rpi-rgb-led-matrix.git
+# Clone the official RGB matrix library
+WORKDIR /opt
+RUN git clone --depth=1 https://github.com/hzeller/rpi-rgb-led-matrix.git
 
-WORKDIR /build/rpi-rgb-led-matrix
+WORKDIR /opt/rpi-rgb-led-matrix
 
-# Build core library
-RUN make -j"$(nproc)"
+# Build the native C++ library (required for hardware control)
+RUN make -j"$(nproc)" all
 
-# Install python bindings into /install (we'll copy it to runtime image)
-WORKDIR /build/rpi-rgb-led-matrix/bindings/python
-RUN pip install --no-cache-dir --prefix=/install .
+# Apply patch to disable unsafe Pillow fast-path and ensure compatibility in Docker environment
+# Replace Pillow shim implementation with a safe stub
+RUN python3 - <<'PY'
+from pathlib import Path
 
+root = Path("/opt/rpi-rgb-led-matrix")
 
-# ------------------------------------------------------------
-# Stage 2: runtime
-# ------------------------------------------------------------
-FROM python:3.11-slim
+pillow_c = root / "bindings/python/rgbmatrix/shims/pillow.c"
+pillow_c.write_text(
+    '#include "pillow.h"\n'
+    'int** get_image32(void* im) { (void)im; return 0; }\n',
+    encoding="utf-8"
+)
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+core_pyx = root / "bindings/python/rgbmatrix/core.pyx"
+txt = core_pyx.read_text(encoding="utf-8")
 
+txt = txt.replace(
+    "def SetImage(self, image, int offset_x = 0, int offset_y = 0, unsafe=True):",
+    "def SetImage(self, image, int offset_x = 0, int offset_y = 0, unsafe=False):"
+)
+
+start = txt.index("        if unsafe:")
+end = txt.index("        else:", start)
+
+txt = (
+    txt[:start]
+    + '        if unsafe:\n'
+      '            raise Exception("unsafe Pillow fast-path is disabled in this Docker build")\n'
+    + txt[end:]
+)
+
+core_pyx.write_text(txt, encoding="utf-8")
+PY
+
+# Install the Python bindings for the RGB matrix library
+RUN python3 -m pip install --no-cache-dir .
+RUN python3 -c "import rgbmatrix.core; from rgbmatrix import RGBMatrix, RGBMatrixOptions; print('rgbmatrix.core OK')"
+
+# Application setup
 WORKDIR /app
 
-# Minimal runtime deps (certs, tz)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates \
-    tzdata \
- && rm -rf /var/lib/apt/lists/*
-
-# Copy rgbmatrix python package from builder
-COPY --from=builder /install /usr/local
-
-# Install app python deps
+# Install Python dependencies
 COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
+RUN python3 -m pip install --no-cache-dir -r /app/requirements.txt
 
-# Copy app
+# Copy the rest of the application source code
 COPY . /app
 
-# Default command (uprav dle toho jak spouštíš main)
-CMD ["python", "main.py"]
+# Default command to run the application
+CMD ["python3", "main.py"]

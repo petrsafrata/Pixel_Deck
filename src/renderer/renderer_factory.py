@@ -55,17 +55,24 @@ def create_renderer(app_cfg: Dict[str, Any], display_cfg: Dict[str, Any]):
         from src.renderer.matrix_renderer import MatrixRenderer, MatrixRendererConfig
 
         cfg = MatrixRendererConfig(
-            hardware_mapping=_get_str(display_cfg, "hardware_mapping", "adafruit-hat-pwm"),
+            hardware_mapping=_get_str(display_cfg, "hardware_mapping", "adafruit-hat"),
             rows=_get_int(display_cfg, "rows", 64),
             cols=_get_int(display_cfg, "cols", 64),
             chain_length=_get_int(display_cfg, "chain_length", 1),
             parallel=_get_int(display_cfg, "parallel", 1),
-            pwm_bits=_get_int(display_cfg, "pwm_bits", 11),
-            pwm_lsb_nanoseconds=_get_int(display_cfg, "pwm_lsb_nanoseconds", 130),
+            pwm_bits=_get_int(display_cfg, "pwm_bits", 8),
+            pwm_lsb_nanoseconds=_get_int(display_cfg, "pwm_lsb_nanoseconds", 220),
             brightness=_get_int(display_cfg, "brightness", 70),
-            gpio_slowdown=_get_int(display_cfg, "gpio_slowdown", 2),
-            scan_mode=_get_int(display_cfg, "scan_mode", 1),
-            disable_hardware_pulsing=_get_bool(display_cfg, "disable_hardware_pulsing", False),
+            gpio_slowdown=_get_int(display_cfg, "gpio_slowdown", 10),
+            scan_mode=_get_int(display_cfg, "scan_mode", 0),
+            disable_hardware_pulsing=_get_bool(display_cfg, "disable_hardware_pulsing", True),
+            row_address_type=_get_int(display_cfg, "row_address_type", 0),
+            multiplexing=_get_int(display_cfg, "multiplexing", 0),
+            panel_type=_get_str(display_cfg, "panel_type", ""),
+            led_rgb_sequence=_get_str(display_cfg, "led_rgb_sequence", "RGB"),
+            pixel_mapper_config=_get_str(display_cfg, "pixel_mapper_config", ""),
+            show_refresh_rate=_get_bool(display_cfg, "show_refresh_rate", True),
+            limit_refresh_rate_hz=_get_int(display_cfg, "limit_refresh_rate_hz", 0),
         )
 
         logger.info(

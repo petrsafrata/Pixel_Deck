@@ -17,19 +17,29 @@ display:
   # Hardware / RGB Matrix driver settings (rpi-rgb-led-matrix)
   # These map to runtime options for the underlying driver.
   # ----------------------------------------------------------
-  hardware_mapping: "adafruit-hat-pwm"
-  rows: 64
-  cols: 64
-  chain_length: 1
-  parallel: 1
-  pwm_bits: 11
+  hardware_mapping: "adafruit-hat"  # Defines the GPIO pin layout used by the RGB matrix (Adafruit HAT in this case)
+  rows: 64                          # Number of rows per panel (height)
+  cols: 64                          # Number of columns per panel (width)
+  chain_length: 1                   # Number of panels chained horizontally
+  parallel: 1                       # Number of parallel chains connected to the Raspberry Pi
+  pwm_bits: 8                       # PWM color depth (higher = better color resolution, lower = more stability/performance)
 
   # PWM / brightness tuning
-  pwm_lsb_nanoseconds: 130
-  brightness: 70
-  gpio_slowdown: 2
-  scan_mode: 1
-  disable_hardware_pulsing: false
+  pwm_lsb_nanoseconds: 220          # Duration of the least significant bit in PWM (affects brightness stability and flickering)
+  brightness: 70                    # Overall brightness level (0–100)
+  gpio_slowdown: 10                 # Slows down GPIO signal timing to improve stability on slower hardware or long cables
+  scan_mode: 0                      # Panel scan mode (0 = progressive, 1 = interlaced; depends on panel type)
+  disable_hardware_pulsing: true    # Disables hardware PWM timing (can reduce flickering issues on some setups)
+
+  # Advanced panel configuration
+  row_address_type: 0               # Row addressing method (depends on panel chipset; usually 0 unless specific panel requires otherwise)
+  multiplexing: 0                   # Multiplexing mode (panel-specific; affects how rows are refreshed)
+  panel_type: ""                    # Optional panel type override (used only for specific panel drivers)
+  led_rgb_sequence: "RGB"           # Color channel order (RGB, BGR, etc.; fixes incorrect color rendering)
+  pixel_mapper_config: ""           # Pixel remapping configuration (used for rotated or custom-wired panels)
+
+  # Debug / diagnostics
+  show_refresh_rate: true           # Displays current refresh rate (FPS) in console for debugging/performance tuning
 
   # Target render FPS for the whole application loop
   target_fps: 30
@@ -55,14 +65,14 @@ app:
   # Application behaviour
   # ----------------------------------------------------------
   mode: "rotate"                # rotate | single
-  render: "window"              # window | matrix
+  render: "matrix"              # window | matrix
   log_level: "INFO"             # DEBUG | INFO | WARNING | ERROR
 
   # If mode=single, this scene is used; if mode=rotate, it's typically ignored
   active_scene: "clock"
 
   # Rotation order in rotate mode (scene keys must exist in `scenes:`)
-  scene_order: [ "clock", "images", ]
+  scene_order: [ "clock", "images", "bitcoin", "calendar", "weather", "sp500", "text" ]
 
   # Scene transition settings (if implemented)
   transition:
@@ -78,11 +88,11 @@ scenes:
     background: "#000000"
 
     # Override scene duration + refresh interval
-    duration_s: 15
+    duration_s: 5
     refresh_s: 60             # Data refresh (seconds)
 
     font:
-      primary_color: "##FFFFFF"   # Price text color
+      primary_color: "#FFFFFF"   # Price text color
       secondary_color: "#F7931A"  # Change (%) color
 
     layout:
@@ -117,13 +127,13 @@ scenes:
     enabled: true
     background: "#000000"
 
-    duration_s: 2
+    duration_s: 5
     format: "%H:%M"           # Python strftime format
     show_date: false          # Reserved for future (if you add date rendering)
 
     font:
-      primary_color: "##34c242"
-      secondary_color: "##34c242"
+      primary_color: "#34c242"
+      secondary_color: "#34c242"
 
     layout:
       # NOTE: in the standardized ClockScene, text is centered horizontally;
@@ -146,11 +156,11 @@ scenes:
     enabled: true
     background: "#000000"
 
-    duration_s: 15
+    duration_s: 5
     refresh_s: 30               # Reserved for future
 
     font:
-      primary_color: "##FFFFFF"   # Date (DD.MM)
+      primary_color: "#FFFFFF"   # Date (DD.MM)
       secondary_color: "#bf230b"  # Year (YYYY)
 
     layout:
@@ -178,7 +188,7 @@ scenes:
     enabled: true
     background: "#000000"
 
-    duration_s: 15
+    duration_s: 5
     refresh_s: 600              # Data refresh (seconds) => 10 minutes
 
     font:
@@ -222,7 +232,7 @@ scenes:
     enabled: true
     background: "#000000"
 
-    duration_s: 12
+    duration_s: 5
     refresh_s: 300              # Data refresh (seconds) => 5 minutes
 
     font:
@@ -257,7 +267,7 @@ scenes:
     enabled: true
     background: "#000000"
 
-    duration_s: 10
+    duration_s: 5
     fps: 15                     # Lower FPS is OK for static text scenes
 
     font:
@@ -289,7 +299,7 @@ scenes:
     enabled: true
     background: "#000000"
 
-    duration_s: 15
+    duration_s: 5
     fps: 10                     # Lower FPS is enough (single static image)
 
     images:
