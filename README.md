@@ -1,3 +1,5 @@
+![Pixel Deck Banner](assets/images/app/pixel-deck-banner.png)
+
 # 🖥️ Pixel Deck
 
 ![Python](https://img.shields.io/badge/Python-3.11+-blue?logo=python&logoColor=white)
@@ -157,6 +159,7 @@ Pixel_Deck/
 │ ├── clock.py
 │ ├── images_random.py
 │ ├── registry.py
+│ ├── show_app_logo.py
 │ ├── sp500.py
 │ ├── text.py
 │ └── weather.py

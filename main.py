@@ -5,6 +5,7 @@ from src.core.app_config import Config, ConfigError
 from src.core.logging_config import setup_logging
 
 from src.scenes.registry import SceneRegistry
+from src.scenes.show_app_logo import ShowAppLogo
 from src.scenes.clock import ClockScene
 from src.scenes.bitcoin import BitcoinScene
 from src.scenes.calendar import CalendarScene
@@ -12,6 +13,7 @@ from src.scenes.weather import WeatherScene
 from src.scenes.sp500 import SP500Scene
 from src.scenes.text import TextScene
 from src.scenes.images_random import ImagesRandomScene
+from src.scenes.day_state import DayStateScene
 from pathlib import Path
 
 from src.renderer.renderer_factory import create_renderer
@@ -21,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 def build_registry() -> SceneRegistry:
     reg = SceneRegistry()
+    reg.register("show_app_logo", ShowAppLogo)
     reg.register("clock", ClockScene)
     reg.register("bitcoin", BitcoinScene)
     reg.register("calendar", CalendarScene)
@@ -28,6 +31,7 @@ def build_registry() -> SceneRegistry:
     reg.register("sp500", SP500Scene)
     reg.register("text", TextScene)
     reg.register("images", ImagesRandomScene)
+    reg.register("day_state", DayStateScene)
     return reg
 
 
@@ -75,6 +79,16 @@ def run_scene(scene, renderer, duration_s: int | None = None):
 
     finally:
         scene.on_exit()
+
+
+def run_startup_logo(cfg: Config, reg: SceneRegistry, renderer) -> None:
+    if not bool(cfg.app.get("show_app_logo_on_start", True)):
+        return
+
+    scene = reg.create("show_app_logo", {}, renderer=renderer)
+    duration = 5
+    logger.info("Showing startup logo (duration=%ss)", duration)
+    run_scene(scene, renderer, duration_s=duration)
 
 
 def run_single(cfg: Config, reg: SceneRegistry, renderer):
@@ -133,6 +147,7 @@ def main():
 
         mode = cfg.app.get("mode", "single")
         logger.info("Pixel Deck v%s starting...", get_version())
+        run_startup_logo(cfg, reg, renderer)
         logger.info("Mode: %s", mode)
 
         if mode == "single":

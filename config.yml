@@ -68,11 +68,13 @@ app:
   render: "matrix"              # window | matrix
   log_level: "INFO"             # DEBUG | INFO | WARNING | ERROR
 
+  show_app_logo_on_start: false  # Show a logo scene on startup
+
   # If mode=single, this scene is used; if mode=rotate, it's typically ignored
   active_scene: "clock"
 
   # Rotation order in rotate mode (scene keys must exist in `scenes:`)
-  scene_order: [ "clock", "images", "bitcoin", "calendar", "weather", "sp500", "text" ]
+  scene_order: [ "clock", "images", "bitcoin", "calendar", "weather", "sp500", "text", "day_state" ]
 
   # Scene transition settings (if implemented)
   transition:
@@ -213,6 +215,9 @@ scenes:
           sun: "assets/images/weather/sun.png"
           cloud: "assets/images/weather/cloud.png"
           rain: "assets/images/weather/rain.png"
+          half_sun: "assets/images/weather/half_sun.png"
+          snow: "assets/images/weather/snow.png"
+          thunderstorm: "assets/images/weather/thunderstorm.png"
 
       temp:
         center: true
@@ -314,4 +319,45 @@ scenes:
 
       # List of image files to choose from
       files:
-        - "assets/images/canvas/vangogh.png"
+        - "assets/images/canvas/vangogh-night.png"
+        - "assets/images/canvas/batman.jpg"
+        - "assets/images/canvas/vangogh-tresa.png"
+
+  # ==========================================================
+  # DAY STATE (Open-Meteo)
+  # ==========================================================
+  day_state:
+    enabled: true
+    background: "#000000"
+
+    duration_s: 10
+    refresh_s: 3600              # Data refresh (seconds) => 1 hour
+
+    font:
+      primary_color: "#FFFFFF"
+      secondary_color: "#AAAAAA"
+
+    data:
+      provider: "open_meteo"       # Currently supported: open_meteo
+      latitude: 50.0755            # Prague (change as needed)
+      longitude: 14.4378
+      timezone: "Europe/Prague"
+
+    layout:
+      icon:
+        size: 32
+        center: true
+        x: 0                     # Used only when center=false
+        y: 2
+
+        # Mapping from internal day state keys to image files
+        icons:
+          sun: "assets/images/weather/sun.png"
+          night: "assets/images/weather/moon.png"
+
+    text:
+      center: true
+      label_y: 40
+      label_scale: 1
+      time_y: 50
+      time_scale: 1

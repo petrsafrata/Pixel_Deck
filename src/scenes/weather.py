@@ -125,7 +125,7 @@ class WeatherScene(BaseScene):
         self.icon_size = int(icon_cfg.get("size", 28))
         self.icon_center = bool(icon_cfg.get("center", True))
         self.icon_y = int(icon_cfg.get("y", 4))
-        self.icon_paths = (icon_cfg.get("icons") or {})  # expected keys: sun/cloud/rain
+        self.icon_paths = (icon_cfg.get("icons") or {})  # expected keys: sun/half_sun/cloud/rain/snow/thunderstorm
 
         temp_cfg = (layout.get("temp") or {})
         self.temp_center = bool(temp_cfg.get("center", True))
@@ -174,12 +174,14 @@ class WeatherScene(BaseScene):
         self._draw_icon(icon_key)
 
         temp_text = f"{int(round(self._data.temp_c))}°C"
-        self._draw_centered_text(temp_text, y=self.temp_y, scale=self.temp_scale, color=self.primary_color, center=self.temp_center)
+        self._draw_centered_text(temp_text, y=self.temp_y, scale=self.temp_scale, color=self.primary_color,
+                                 center=self.temp_center)
 
         tmin = int(round(self._data.tmin_c))
         tmax = int(round(self._data.tmax_c))
         mm_text = f"{tmin}°    {tmax}°"
-        self._draw_centered_text(mm_text, y=self.mm_y, scale=self.mm_scale, color=self.secondary_color, center=self.mm_center)
+        self._draw_centered_text(mm_text, y=self.mm_y, scale=self.mm_scale, color=self.secondary_color,
+                                 center=self.mm_center)
 
     def _draw_centered_text(self, text: str, y: int, scale: int, color, center: bool) -> None:
         assert self.renderer is not None
@@ -209,15 +211,27 @@ class WeatherScene(BaseScene):
         draw_image_rgba(self.renderer, x, self.icon_y, pixels, w, h)
 
     def _map_weather_code_to_icon(self, code: int) -> str:
+        """
+        Open-Meteo:
+            0 = clear sky
+            1,2 = mainly clear / partly cloudy
+            3 = overcast
+            45,48 = fog
+            51-67,80-82 = drizzle/rain
+            71-77,85-86 = snow
+            95-99 = thunderstorm
+        """
         if code == 0:
             return "sun"
-        if code in (1, 2, 3, 45, 48):
+        if code in (1, 2):
+            return "half_sun"
+        if code in (3, 45, 48):
             return "cloud"
-        if 51 <= code <= 67 or 61 <= code <= 65 or 80 <= code <= 82:
-            return "rain"
         if 71 <= code <= 77 or 85 <= code <= 86:
-            return "cloud"
+            return "snow"
         if 95 <= code <= 99:
+            return "thunderstorm"
+        if 51 <= code <= 67 or 80 <= code <= 82:
             return "rain"
         return "cloud"
 
