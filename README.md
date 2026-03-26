@@ -102,16 +102,18 @@ Some 64×64 panels require remapping:
 
 Currently implemented scenes:
 
-| Scene      | Description                                    |
-|------------|------------------------------------------------|
-| `clock`    | Digital clock (configurable format & timezone) |
-| `calendar` | Current date (DD.MM + YYYY)                    |
-| `weather`  | Weather from Open-Meteo API                    |
-| `bitcoin`  | Bitcoin price from CoinGecko                   |
-| `sp500`    | S&P 500 data from Stooq                        |
-| `text`     | Dynamic multi-line text with word wrapping     |
-| `images`   | Random image display                           |
-| `registry` | (Reserved / internal usage)                    |
+| Scene         | Description                                    |
+|---------------|------------------------------------------------|
+| `clock`       | Digital clock (configurable format & timezone) |
+| `calendar`    | Current date (DD.MM + YYYY)                    |
+| `weather`     | Weather from Open-Meteo API                    |
+| `bitcoin`     | Bitcoin price from CoinGecko                   |
+| `sp500`       | S&P 500 data from Stooq                        |
+| `text`        | Dynamic multi-line text with word wrapping     |
+| `images`      | Random image display                           |
+| `day_state`   | Day state from Open-Meteo API                  |
+| `f1_calendar` | F1 next race from Jolpi API                    |
+| `registry`    | (Reserved / internal usage)                    |
 
 >[!NOTE]
 >All scenes share a standardized lifecycle and configuration structure.
@@ -157,6 +159,8 @@ Pixel_Deck/
 │ ├── bitcoin.py
 │ ├── calendar.py
 │ ├── clock.py
+│ ├── day_state.py
+│ ├── f1_calendar.py
 │ ├── images_random.py
 │ ├── registry.py
 │ ├── show_app_logo.py
@@ -188,6 +192,8 @@ BaseScene
 ├── BitcoinScene
 ├── SP500Scene
 ├── TextScene
+├── DayStateScene
+├── F1CalendarScene
 └── ImagesRandomScene
 ```
 

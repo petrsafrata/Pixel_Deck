@@ -14,6 +14,7 @@ from src.scenes.sp500 import SP500Scene
 from src.scenes.text import TextScene
 from src.scenes.images_random import ImagesRandomScene
 from src.scenes.day_state import DayStateScene
+from src.scenes.f1_calendar import F1CalendarScene
 from pathlib import Path
 
 from src.renderer.renderer_factory import create_renderer
@@ -32,6 +33,7 @@ def build_registry() -> SceneRegistry:
     reg.register("text", TextScene)
     reg.register("images", ImagesRandomScene)
     reg.register("day_state", DayStateScene)
+    reg.register("f1_calendar", F1CalendarScene)
     return reg
 
 
