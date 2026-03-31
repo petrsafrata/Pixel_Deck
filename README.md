@@ -171,6 +171,7 @@ Pixel_Deck/
 ├── main.py
 ├── requirements.txt
 ├── Dockerfile
+├── Dockerfile.base
 └── docker-compose.yml
 
 ```
@@ -292,7 +293,17 @@ class MyScene(BaseScene):
 ```
 
 ### Step 2 – Register Scene
-Add it to `registry.py`
+Add it to `registry.py`. In `main.py` add import and register:
+
+```python
+from src.scenes.my_scene import MyScene
+
+def build_registry() -> SceneRegistry:
+    reg = SceneRegistry()
+    # existing registrations...
+    reg.register("my_scene", MyScene)
+    return reg
+```
 
 ### Step 3 – Add Configuration
 
@@ -333,9 +344,11 @@ python main.py
 
 Pixel Deck is designed to run on Raspberry Pi using Docker.
 
-Download the current release, build image and run:
+The project Dockerfile builds the application image on top of a prebuilt base image (published via GitHub Container Registry) that already contains the required runtime environment, matrix library, and compatibility patches.
+
+Download the current release, build application image and run:
 ```bash
-docker build -t pixel-deck
+docker compose build pixel-deck
 docker compose up
 ```
 
@@ -362,7 +375,7 @@ docker compose up
 
 ---
 
-## 🧠 Why Dockerfile Patches Pillow
+## 🧠 Why the Base Image Patches Pillow
 
 The `rpi-rgb-led-matrix` Python bindings use an **unsafe fast-path for Pillow images**, which accesses image memory directly for better performance.  
 
