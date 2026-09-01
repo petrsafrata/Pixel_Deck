@@ -2,7 +2,7 @@
 FROM python:3.13-bookworm
 LABEL author="petrsafrata"
 LABEL description="Docker image for running rpi-rgb-led-matrix Python samples on Raspberry Pi hardware. Based on Debian Bookworm with Python 3.13."
-LABEL version="1.0.0"
+LABEL version="1.0.1"
 LABEL org.opencontainers.image.source="https://github.com/petrsafrata/Pixel_Deck"
 
 # Environment configuration
