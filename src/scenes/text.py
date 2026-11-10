@@ -5,11 +5,114 @@ from typing import List, Tuple
 
 from src.scenes.base_scene import BaseScene
 from src.gfx.draw import draw_text, measure_text, hex_to_rgb
+from src.web.field_spec import (
+    BACKGROUND_FIELD,
+    DURATION_FIELD,
+    FIELD_TYPE_NUMBER,
+    FIELD_TYPE_SELECT,
+    FIELD_TYPE_TEXT,
+    FPS_FIELD,
+    FieldOption,
+    FieldSpec,
+    PRIMARY_COLOR_FIELD,
+    build_field_spec,
+)
 
 logger = logging.getLogger(__name__)
 
+# -------------------------------------------------------------------------
+# Editable configuration fields exposed by the Web UI.
+#
+# Each scene declares a tuple of FieldSpec objects describing which
+# configuration values can be edited from the frontend.
+#
+# These metadata are consumed by the schema-driven Web UI to generate
+# the Scene Settings panel automatically. Any field defined here will
+# be rendered in the frontend without additional React changes.
+#
+# Common fields (duration, colors, refresh interval, etc.) are reused
+# across multiple scenes, while scene-specific fields are defined
+# locally using build_field_spec().
+# -------------------------------------------------------------------------
+_FIELD_SPECS: tuple[FieldSpec, ...] = (
+    DURATION_FIELD,
+    FPS_FIELD,
+    BACKGROUND_FIELD,
+    PRIMARY_COLOR_FIELD,
+    build_field_spec(
+        "text.value",
+        "Text content",
+        "Text rendered on the display.",
+        FIELD_TYPE_TEXT,
+        "Text content",
+        placeholder="Enter your message",
+        multiline=True,
+        rows=4,
+    ),
+    build_field_spec(
+        "text.max_lines",
+        "Maximum lines",
+        "Maximum number of wrapped lines.",
+        FIELD_TYPE_NUMBER,
+        "Text layout",
+        minimum=1,
+        maximum=12,
+        step=1,
+        numeric_type="int",
+    ),
+    build_field_spec(
+        "text.scale",
+        "Text scale",
+        "Preferred text scale before auto-shrinking.",
+        FIELD_TYPE_NUMBER,
+        "Text layout",
+        minimum=1,
+        maximum=8,
+        step=1,
+        numeric_type="int",
+    ),
+    build_field_spec(
+        "text.spacing",
+        "Letter spacing",
+        "Space between glyphs in pixels.",
+        FIELD_TYPE_NUMBER,
+        "Text layout",
+        minimum=0,
+        maximum=6,
+        step=1,
+        numeric_type="int",
+    ),
+    build_field_spec(
+        "text.line_gap",
+        "Line gap",
+        "Vertical gap between wrapped lines.",
+        FIELD_TYPE_NUMBER,
+        "Text layout",
+        minimum=0,
+        maximum=8,
+        step=1,
+        numeric_type="int",
+    ),
+    build_field_spec(
+        "text.align",
+        "Alignment",
+        "Horizontal alignment of the rendered text.",
+        FIELD_TYPE_SELECT,
+        "Text layout",
+        options=(
+            FieldOption(label="Left", value="left"),
+            FieldOption(label="Center", value="center"),
+            FieldOption(label="Right", value="right"),
+        ),
+    ),
+)
+
 
 class TextScene(BaseScene):
+    scene_name = "text"
+    scene_label = "Text"
+    scene_description = "Render custom text with responsive wrapping."
+    scene_field_specs = _FIELD_SPECS
     """
     Standardized scene structure:
       - on_enter(): init defaults -> load config -> finalize

@@ -10,8 +10,71 @@ import requests
 from src.scenes.base_scene import BaseScene
 from src.gfx.draw import draw_text, measure_text, hex_to_rgb, draw_image_rgba
 from src.gfx.image_loader import load_rgba_pixels
+from src.web.field_spec import (
+    BACKGROUND_FIELD,
+    DURATION_FIELD,
+    FIELD_TYPE_NUMBER,
+    FIELD_TYPE_TEXT,
+    FieldSpec,
+    PRIMARY_COLOR_FIELD,
+    REFRESH_FIELD,
+    SECONDARY_COLOR_FIELD,
+    build_field_spec,
+)
 
 logger = logging.getLogger(__name__)
+
+# -------------------------------------------------------------------------
+# Editable configuration fields exposed by the Web UI.
+#
+# Each scene declares a tuple of FieldSpec objects describing which
+# configuration values can be edited from the frontend.
+#
+# These metadata are consumed by the schema-driven Web UI to generate
+# the Scene Settings panel automatically. Any field defined here will
+# be rendered in the frontend without additional React changes.
+#
+# Common fields (duration, colors, refresh interval, etc.) are reused
+# across multiple scenes, while scene-specific fields are defined
+# locally using build_field_spec().
+# -------------------------------------------------------------------------
+_FIELD_SPECS: tuple[FieldSpec, ...] = (
+    DURATION_FIELD,
+    REFRESH_FIELD,
+    BACKGROUND_FIELD,
+    PRIMARY_COLOR_FIELD,
+    SECONDARY_COLOR_FIELD,
+    build_field_spec(
+        "data.latitude",
+        "Latitude",
+        "Location latitude used for weather lookup.",
+        FIELD_TYPE_NUMBER,
+        "Weather data",
+        minimum=-90,
+        maximum=90,
+        step=0.0001,
+        numeric_type="float",
+    ),
+    build_field_spec(
+        "data.longitude",
+        "Longitude",
+        "Location longitude used for weather lookup.",
+        FIELD_TYPE_NUMBER,
+        "Weather data",
+        minimum=-180,
+        maximum=180,
+        step=0.0001,
+        numeric_type="float",
+    ),
+    build_field_spec(
+        "data.timezone",
+        "Timezone",
+        "IANA timezone identifier used for weather requests.",
+        FIELD_TYPE_TEXT,
+        "Weather data",
+        placeholder="Europe/Prague",
+    ),
+)
 
 
 @dataclass
@@ -24,6 +87,10 @@ class WeatherData:
 
 
 class WeatherScene(BaseScene):
+    scene_name = "weather"
+    scene_label = "Weather"
+    scene_description = "Show current weather conditions and forecast values."
+    scene_field_specs = _FIELD_SPECS
     """
     Standardized scene structure:
       - on_enter(): init defaults -> load config -> init clients -> load assets (icon cache lazy) -> reset timers

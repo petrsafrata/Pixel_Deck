@@ -2,17 +2,51 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Optional, Tuple
+from typing import Tuple
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from src.scenes.base_scene import BaseScene
 from src.gfx.draw import draw_text, measure_text, hex_to_rgb, draw_image_rgba
 from src.gfx.image_loader import load_rgba_pixels
+from src.web.field_spec import (
+    BACKGROUND_FIELD,
+    DURATION_FIELD,
+    FieldSpec,
+    PRIMARY_COLOR_FIELD,
+    REFRESH_FIELD,
+    SECONDARY_COLOR_FIELD,
+)
 
 logger = logging.getLogger(__name__)
 
+# -------------------------------------------------------------------------
+# Editable configuration fields exposed by the Web UI.
+#
+# Each scene declares a tuple of FieldSpec objects describing which
+# configuration values can be edited from the frontend.
+#
+# These metadata are consumed by the schema-driven Web UI to generate
+# the Scene Settings panel automatically. Any field defined here will
+# be rendered in the frontend without additional React changes.
+#
+# Common fields (duration, colors, refresh interval, etc.) are reused
+# across multiple scenes, while scene-specific fields are defined
+# locally using build_field_spec().
+# -------------------------------------------------------------------------
+_FIELD_SPECS: tuple[FieldSpec, ...] = (
+    DURATION_FIELD,
+    REFRESH_FIELD,
+    BACKGROUND_FIELD,
+    PRIMARY_COLOR_FIELD,
+    SECONDARY_COLOR_FIELD,
+)
+
 
 class CalendarScene(BaseScene):
+    scene_name = "calendar"
+    scene_label = "Calendar"
+    scene_description = "Show the current date and year."
+    scene_field_specs = _FIELD_SPECS
     """
     Standardized scene structure:
       - on_enter(): init defaults -> load config -> load assets -> finalize

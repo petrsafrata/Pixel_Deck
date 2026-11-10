@@ -17,6 +17,7 @@ class ShowAppLogo(BaseScene):
         - update(): render centered logo and animated loading bar
         - on_exit(): final cleanup/logging
     """
+    scene_name = "show_app_logo"
 
     # Default config
     LOGO_PATH = "assets/images/app/pixel-deck-logo-small.png"

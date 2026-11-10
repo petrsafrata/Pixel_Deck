@@ -9,15 +9,24 @@ class SceneRegistry:
     """
     Simple registry / factory for scenes.
     Allows creating scenes by name without if/else in main loop.
+
+    Registration uses the class-level ``scene_name`` attribute as the key,
+    so the name is declared exactly once – on the scene class itself.
     """
 
     def __init__(self):
         self._scenes: dict[str, Type[BaseScene]] = {}
 
-    def register(self, name: str, scene_cls: Type[BaseScene]) -> None:
-        key = name.strip().lower()
+    def register(self, scene_cls: Type[BaseScene]) -> None:
+        """Register a scene class.  The registry key is taken from
+        ``scene_cls.scene_name``; it must be a non-empty string.
+        """
+        key = scene_cls.scene_name.strip().lower()
         if not key:
-            raise ValueError("Scene name cannot be empty")
+            raise ValueError(
+                f"{scene_cls.__name__}.scene_name is empty – "
+                "set scene_name = '<key>' on the class before registering."
+            )
         self._scenes[key] = scene_cls
 
     def create(self, name: str, config: dict[str, Any], renderer: Optional[Any] = None) -> BaseScene:

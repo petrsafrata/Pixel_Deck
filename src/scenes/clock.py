@@ -7,11 +7,56 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from src.scenes.base_scene import BaseScene
 from src.gfx.draw import draw_text, measure_text, hex_to_rgb
+from src.web.field_spec import (
+    BACKGROUND_FIELD,
+    DURATION_FIELD,
+    FIELD_TYPE_TEXT,
+    FieldSpec,
+    build_field_spec,
+)
 
 logger = logging.getLogger(__name__)
 
+# -------------------------------------------------------------------------
+# Editable configuration fields exposed by the Web UI.
+#
+# Each scene declares a tuple of FieldSpec objects describing which
+# configuration values can be edited from the frontend.
+#
+# These metadata are consumed by the schema-driven Web UI to generate
+# the Scene Settings panel automatically. Any field defined here will
+# be rendered in the frontend without additional React changes.
+#
+# Common fields (duration, colors, refresh interval, etc.) are reused
+# across multiple scenes, while scene-specific fields are defined
+# locally using build_field_spec().
+# -------------------------------------------------------------------------
+_FIELD_SPECS: tuple[FieldSpec, ...] = (
+    DURATION_FIELD,
+    BACKGROUND_FIELD,
+    build_field_spec(
+        "font.primary_color",
+        "Primary text color",
+        "Main text color used by the scene.",
+        "color",
+        "Appearance",
+    ),
+    build_field_spec(
+        "format",
+        "Time format",
+        "strftime format string used to render the clock.",
+        FIELD_TYPE_TEXT,
+        "Scene specific",
+        placeholder="%H:%M",
+    ),
+)
+
 
 class ClockScene(BaseScene):
+    scene_name = "clock"
+    scene_label = "Clock"
+    scene_description = "Show the current time in a chosen format."
+    scene_field_specs = _FIELD_SPECS
     """
     Standardized scene structure:
       - on_enter(): init defaults -> load config -> finalize

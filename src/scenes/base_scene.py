@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
+
 from src.gfx.draw import hex_to_rgb
+
+if TYPE_CHECKING:
+    from src.web.field_spec import FieldSpec
 
 
 class BaseScene(ABC):
@@ -13,7 +17,20 @@ class BaseScene(ABC):
       - on_enter()  : called once when scene becomes active
       - update(dt)  : called repeatedly; dt is seconds since last update
       - on_exit()   : called once when scene is deactivated
+
+    Class-level metadata (override in each subclass):
+      - scene_name         : registry key matching config.yml and SceneRegistry
+      - scene_label        : human-readable display name
+      - scene_description  : optional one-line description shown in the web UI
+      - scene_capabilities : dict of feature flags (e.g. supportsAssets)
+      - scene_field_specs  : tuple of FieldSpec describing editable config fields
     """
+
+    scene_name: str = ""
+    scene_label: str = ""
+    scene_description: str | None = None
+    scene_capabilities: dict = {}
+    scene_field_specs: tuple[FieldSpec, ...] = ()
 
     def __init__(self, name: str, config: dict[str, Any], renderer: Optional[Any] = None):
         self.name = name
