@@ -9,14 +9,17 @@ services:
     devices:
       - "/dev/mem:/dev/mem"                 # Maps physical memory device (needed for low-level LED matrix control)
 
+    ports:
+      - "8080:8080"                         # Maps port 8080 of the container to port 8080 on the host (for Web UI access)
+
     environment:
       TZ: Europe/Prague                     # Sets container timezone
 
     working_dir: /app                       # Working directory inside the container
 
     volumes:
-      - ./config.yml:/app/config.yml:ro     # Mounts configuration file (read-only)
-      - ./assets:/app/assets:ro             # Mounts assets (images, fonts, etc.) (read-only)
+      - ./config:/app/config                # Mounts config directory – writable for Web UI saves, backups and temp files
+      - ./assets:/app/assets                # Mounts assets (images, fonts, etc.) – writable for uploads
 
     command: ["python3", "main.py"]         # Command executed when container starts
 

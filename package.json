@@ -1,0 +1,15 @@
+{
+  "name": "pixel-deck",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Pixel Deck - LED matrix display application",
+  "scripts": {
+    "dev": "npm run dev --prefix frontend",
+    "build": "npm run build --prefix frontend",
+    "preview": "npm run preview --prefix frontend"
+  },
+  "workspaces": [
+    "frontend"
+  ]
+}
+
