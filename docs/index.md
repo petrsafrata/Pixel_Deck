@@ -4,7 +4,7 @@ Pixel Deck is a modular Python application for controlling a 64×64 HUB75 RGB LE
 
 It combines a scene-based rendering engine, hardware-independent renderers, YAML configuration, Docker deployment, and an integrated Web Control Center built with FastAPI and React.
 
-![GitHub Enhanced View](../assets/images/app/pixel-deck-banner.png)
+![GitHub Enhanced View](./images/pixel-deck-banner.png)
 
 ## Main features
 
