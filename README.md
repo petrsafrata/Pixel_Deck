@@ -119,17 +119,18 @@ Some 64×64 panels require remapping:
 
 Currently implemented scenes:
 
-| Scene         | Description                                    |
-|---------------|------------------------------------------------|
-| `clock`       | Digital clock (configurable format & timezone) |
-| `calendar`    | Current date (DD.MM + YYYY)                    |
-| `weather`     | Weather from Open-Meteo API                    |
-| `bitcoin`     | Bitcoin price from CoinGecko                   |
-| `sp500`       | S&P 500 data from Stooq                        |
-| `text`        | Dynamic multi-line text with word wrapping     |
-| `images`      | Random image display                           |
-| `day_state`   | Day state from Open-Meteo API                  |
-| `f1_calendar` | F1 next race from Jolpi API                    |
+| Scene           | Description                                    |
+|-----------------|------------------------------------------------|
+| `clock`         | Digital clock (configurable format & timezone) |
+| `calendar`      | Current date (DD.MM + YYYY)                    |
+| `weather`       | Weather from Open-Meteo API                    |
+| `bitcoin`       | Bitcoin price from CoinGecko                   |
+| `sp500`         | S&P 500 data from Stooq                        |
+| `text`          | Dynamic multi-line text with word wrapping     |
+| `images`        | Random image display                           |
+| `day_state`     | Day state from Open-Meteo API                  |
+| `f1_calendar`   | F1 next race from Jolpi API                    |
+| `agent_monitor` | Agent monitor scene                            |
 
 >[!NOTE]
 >All scenes share a standardized lifecycle and configuration structure.
@@ -152,6 +153,7 @@ Currently implemented scenes:
 - 💡 RGB Matrix renderer for Raspberry Pi
 - 🪵 Structured runtime logging
 - 🐳 Docker-based Raspberry Pi deployment
+- 🤖 AI agent monitoring through HTTP events and Codex lifecycle hooks
 
 ---
 
@@ -391,6 +393,38 @@ The Web UI supports multiple field types, including:
 
 > [!NOTE]
 > The Web Control Center exposes only configuration fields explicitly declared as editable by a scene. Advanced or hardware-specific settings can still be configured directly in `config/config.yml`.
+
+---
+
+## 🤖 AI Agent Monitor
+
+Pixel Deck can display the activity of AI coding agents through the
+`agent_monitor` scene. The current integration supports local Codex
+sessions, including Codex in the ChatGPT desktop app.
+
+The monitor displays four states:
+
+| State   | Display                                        |
+|---------|------------------------------------------------|
+| Idle    | Neutral robot and inactive traffic lights      |
+| Working | Robot with a wrench and a red light            |
+| Waiting | Robot with a speech bubble and an orange light |
+| Done    | Celebrating robot and a green light            |
+
+With automatic switching enabled, agent activity takes priority over
+normal scene rotation. Pixel Deck displays the monitor while agents are
+working, waiting, or showing their completion state. Normal rotation
+resumes when the aggregate state returns to Idle.
+
+When included in `app.scene_order`, the idle monitor also appears as a
+regular rotating scene.
+
+A hook script runs on the computer hosting Codex and sends authenticated
+HTTP events to Pixel Deck. Pixel Deck can run on the same computer or on
+a Raspberry Pi reachable over the local network.
+
+See the [AI Agent Monitor guide](docs/user-guide/agent-monitor.md) for
+configuration, Codex hook setup, API examples, and troubleshooting.
 
 ---
 

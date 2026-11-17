@@ -49,6 +49,7 @@ nav:
       - Configuration: user-guide/configuration.md
       - Web Control Center: user-guide/web-control-center.md
       - Scenes: user-guide/scenes.md
+      - AI Agent Monitor: user-guide/agent-monitor.md
 
   - Developer Guide:
       - Architecture: developer-guide/architecture.md
