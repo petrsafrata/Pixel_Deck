@@ -64,6 +64,8 @@ from src.web.models import (
     LogLevelRequest,
     SceneOrderRequest,
     SceneUpdateRequest,
+    AgentMonitorEventRequest,
+    AgentMonitorStatusResponse
 )
 from src.web.runtime_state import RuntimeState
 
@@ -101,6 +103,10 @@ OPENAPI_TAGS = [
         "description": "Inspect renderer and application diagnostics.",
     },
     {
+        "name": "Agent Monitor",
+        "description": "Receive agent events and inspect aggregate agent status.",
+    },
+    {
         "name": "System",
         "description": "Health checks and system-level endpoints.",
     },
@@ -123,7 +129,7 @@ def create_app(runtime: RuntimeState) -> FastAPI:
             return FileResponse(FRONTEND_DIST / "index.html")
         raise HTTPException(status_code=404, detail="Frontend not built")
 
-    @app.get("/api/status", dependencies=[Depends(require_api_token)], tags=["status"])
+    @app.get("/api/status", dependencies=[Depends(require_api_token)], tags=["System"])
     def get_status() -> dict:
         status = runtime.get_status()
         status["uptime_s"] = int(time.time() - runtime.started_at)
@@ -319,9 +325,49 @@ def create_app(runtime: RuntimeState) -> FastAPI:
             "preview_available": bool(renderer and hasattr(renderer, "get_preview_png")),
         }
 
-    @app.get("/health", tags=["Health"])
+    @app.get("/health", tags=["System"])
     def health() -> dict:
         return {"ok": True}
+
+    @app.post("/api/agent-monitor/events", response_model=AgentMonitorStatusResponse,
+                dependencies=[Depends(require_api_token)], tags=["Agent Monitor"],)
+    def post_agent_monitor_event(
+        payload: AgentMonitorEventRequest,
+    ) -> dict:
+        try:
+            snapshot = runtime.agent_monitor.handle_event(
+                agent=payload.agent,
+                session_id=payload.session_id,
+                event=payload.event,
+            )
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=422,
+                detail=str(exc),
+            ) from exc
+        except OverflowError as exc:
+            raise HTTPException(
+                status_code=503,
+                detail=str(exc),
+            ) from exc
+
+        return {
+            **asdict(snapshot),
+            "active_count": snapshot.active_count,
+        }
+
+    @app.get(
+        "/api/agent-monitor/status",
+        response_model=AgentMonitorStatusResponse,
+        dependencies=[Depends(require_api_token)],
+        tags=["Agent Monitor"],
+    )
+    def get_agent_monitor_status() -> dict:
+        snapshot = runtime.agent_monitor.get_snapshot()
+        return {
+            **asdict(snapshot),
+            "active_count": snapshot.active_count,
+        }
 
     return app
 

@@ -32,7 +32,9 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+from src.core.agent_monitor import AgentEvent, AgentState
 
 
 class SceneUpdateRequest(BaseModel):
@@ -105,3 +107,23 @@ class ScenesResponse(BaseModel):
 
 class LogsClearResponse(BaseModel):
     cleared: bool = True
+
+class AgentMonitorEventRequest(BaseModel):
+    agent: str = Field(min_length=1, max_length=64, strict=True)
+    session_id: str = Field(min_length=1, max_length=256, strict=True)
+    event: AgentEvent
+
+    @field_validator("agent", "session_id", mode="before")
+    @classmethod
+    def strip_identifiers(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
+
+class AgentMonitorStatusResponse(BaseModel):
+    state: AgentState
+    working_count: int
+    waiting_count: int
+    done_count: int
+    active_count: int

@@ -24,6 +24,8 @@ from src.scenes.text import TextScene
 from src.scenes.weather import WeatherScene
 from src.web.app_factory import create_app
 from src.web.runtime_state import RuntimeState
+from src.scenes.agent_monitor import AgentMonitorScene
+from src.core.agent_monitor import AgentState
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +59,7 @@ def build_registry() -> SceneRegistry:
     reg.register(DayStateScene)
     reg.register(F1CalendarScene)
     reg.register(ShowAppLogo)
+    reg.register(AgentMonitorScene)
     return reg
 
 
@@ -64,48 +67,99 @@ def build_renderer(cfg: Config):
     """Create the concrete renderer (Window or Matrix) based on app/display config."""
     return create_renderer(cfg.app, cfg.display)
 
+def get_auto_monitor_config(cfg: Config) -> dict | None:
+    """Return monitor configuration when automatic switching is enabled."""
+    if "agent_monitor" not in cfg.scenes:
+        return None
 
-def run_scene(scene, renderer, runtime: RuntimeState, duration_s: int | None = None) -> str:
-    """
-    Run a single scene until it finishes, is interrupted, or a signal arrives.
+    monitor_config = cfg.get_scene_config("agent_monitor")
 
-    The loop honours ``scene.fps`` for consistent tick-rate and sleeps the
-    remaining frame budget to avoid busy-waiting.
+    if not monitor_config.get("enabled", False):
+        return None
 
-    Parameters
-    ----------
-    scene:
-        Fully constructed scene instance (``on_enter`` has *not* been called yet).
-    renderer:
-        Active renderer; ``clear`` and ``present`` are called each frame.
-    runtime:
-        Shared runtime state.  ``restart_event`` and ``reload_event`` are
-        checked every frame so the loop can be interrupted without delay.
-    duration_s:
-        Maximum scene runtime in seconds.  ``None`` means run indefinitely
-        (used in single-scene mode where the scene controls its own exit).
+    if not monitor_config.get("auto_switch", False):
+        return None
 
-    Returns
-    -------
-    str
-        ``"restart"``   – restart was requested via ``runtime.restart_event``
-        ``"reload"``    – config reload was requested via ``runtime.reload_event``
-        ``"completed"`` – scene ran for the full ``duration_s``
-    """
+    return monitor_config
+
+def run_scene(
+    scene,
+    renderer,
+    runtime: RuntimeState,
+    duration_s: int | None = None,
+    *,
+    auto_monitor_config: dict | None = None,
+    stop_when_monitor_idle: bool = False,
+) -> str:
+    """Run a scene and pause it while an automatic monitor is visible."""
+    is_monitor = isinstance(scene, AgentMonitorScene)
+
+    if is_monitor:
+        scene.bind_monitor(runtime.agent_monitor)
+
     scene.on_enter()
+    runtime.set_active_scene(scene.name)
+
     try:
-        fps = max(1, int(scene.fps))
-        frame_time = 1.0 / fps
-        last = time.time()
+        frame_time = 1.0 / max(1, int(scene.fps))
+        last = time.monotonic()
         elapsed = 0.0
+        monitor_was_active = False
 
         while True:
             if runtime.restart_event.is_set():
                 return "restart"
+
             if runtime.reload_event.is_set():
                 return "reload"
 
-            now = time.time()
+            # Automatically opened monitor closes when all sessions expire
+            # or finish their Done period.
+            if is_monitor:
+                monitor_state = runtime.agent_monitor.get_snapshot().state
+
+                if monitor_state != AgentState.IDLE:
+                    monitor_was_active = True
+
+                elif stop_when_monitor_idle or (
+                        auto_monitor_config is not None
+                        and monitor_was_active
+                ):
+                    # Leave the active monitor before drawing an Idle frame.
+                    return "completed"
+
+            # Pause a normal scene while the monitor has an active state.
+            if auto_monitor_config is not None and not is_monitor:
+                if runtime.agent_monitor.get_snapshot().state != AgentState.IDLE:
+                    monitor_scene = AgentMonitorScene(
+                        name="agent_monitor",
+                        config=auto_monitor_config,
+                        renderer=renderer,
+                    )
+
+                    logger.info("Pausing %s for agent monitor", scene.name)
+
+                    try:
+                        result = run_scene(
+                            monitor_scene,
+                            renderer,
+                            runtime,
+                            stop_when_monitor_idle=True,
+                        )
+                    finally:
+                        runtime.set_active_scene(scene.name)
+
+                    if result in {"restart", "reload"}:
+                        return result
+
+                    logger.info("Resuming scene: %s", scene.name)
+
+                    # Time spent showing the monitor does not count
+                    # towards the paused scene's duration or next update.
+                    last = time.monotonic()
+                    elapsed = 0.0
+
+            now = time.monotonic()
             dt = max(0.0, now - last)
             last = now
             elapsed += dt
@@ -115,16 +169,28 @@ def run_scene(scene, renderer, runtime: RuntimeState, duration_s: int | None = N
             renderer.present()
 
             if duration_s is not None and elapsed >= duration_s:
-                break
+                # A monitor reached through normal rotation must also stay
+                # visible while an agent is Working, Waiting or Done.
+                keep_monitor_visible = (
+                    is_monitor
+                    and auto_monitor_config is not None
+                    and runtime.agent_monitor.get_snapshot().state
+                    != AgentState.IDLE
+                )
 
-            sleep_time = max(0.0, frame_time - (time.time() - now))
+                if not keep_monitor_visible:
+                    return "completed"
+
+            sleep_time = max(
+                0.0,
+                frame_time - (time.monotonic() - now),
+            )
+
             if sleep_time:
                 time.sleep(sleep_time)
 
     finally:
         scene.on_exit()
-
-    return "completed"
 
 
 def run_startup_logo(cfg: Config, reg: SceneRegistry, renderer, runtime: RuntimeState) -> None:
@@ -167,7 +233,13 @@ def run_single(cfg: Config, reg: SceneRegistry, renderer, runtime: RuntimeState)
         scene = reg.create(scene_name, scene_cfg, renderer=renderer)
         runtime.set_active_scene(scene_name)
         logger.info("Running single scene: %s", scene_name)
-        result = run_scene(scene, renderer, runtime, duration_s=None)
+        result = run_scene(
+            scene,
+            renderer,
+            runtime,
+            duration_s=None,
+            auto_monitor_config=get_auto_monitor_config(cfg),
+        )
 
         if result == "restart":
             return "restart"
@@ -224,7 +296,13 @@ def run_rotate(cfg: Config, reg: SceneRegistry, renderer, runtime: RuntimeState)
             duration = int(scene_cfg.get("duration_s", 10))
             scene = reg.create(scene_name, scene_cfg, renderer=renderer)
             runtime.set_active_scene(scene_name)
-            result = run_scene(scene, renderer, runtime, duration_s=duration)
+            result = run_scene(
+                scene,
+                renderer,
+                runtime,
+                duration_s=duration,
+                auto_monitor_config=get_auto_monitor_config(cfg),
+            )
 
             if result == "restart":
                 return "restart"

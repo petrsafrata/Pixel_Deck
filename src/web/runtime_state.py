@@ -5,6 +5,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
+from src.core.agent_monitor import AgentMonitor
 
 
 @dataclass
@@ -89,6 +90,7 @@ class RuntimeState:
         self.renderer_mode = "window"
         self.web = WebConfig()
         self.registered_scenes: frozenset[str] = frozenset()
+        self.agent_monitor = AgentMonitor()
 
     def set_renderer(self, renderer) -> None:
         """

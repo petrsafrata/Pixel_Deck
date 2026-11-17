@@ -126,6 +126,7 @@ def _build_scene_metadata() -> dict[str, SceneMeta]:
     from src.scenes.sp500 import SP500Scene
     from src.scenes.text import TextScene
     from src.scenes.weather import WeatherScene
+    from src.scenes.agent_monitor import AgentMonitorScene
 
     scene_classes = [
         BitcoinScene,
@@ -137,6 +138,7 @@ def _build_scene_metadata() -> dict[str, SceneMeta]:
         SP500Scene,
         TextScene,
         WeatherScene,
+        AgentMonitorScene,
     ]
     return {
         cls.scene_name: SceneMeta(

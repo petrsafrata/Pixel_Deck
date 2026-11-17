@@ -75,7 +75,7 @@ app:
   active_scene: "clock"
 
   # Rotation order in rotate mode (scene keys must exist in `scenes:`)
-  scene_order: ["clock", "images", "bitcoin", "calendar", "weather", "sp500", "text", "day_state", "f1_calendar"]
+  scene_order: ["clock", "images", "bitcoin", "calendar", "weather", "sp500", "text", "day_state", "f1_calendar", "agent_monitor"]
 
   # Scene transition settings (if implemented)
   transition:
@@ -409,3 +409,13 @@ scenes:
         center: true
         y: 48
         scale: 1
+
+  # ==========================================================
+  # Agent Monitor
+  # ==========================================================
+  agent_monitor:
+    enabled: true
+    auto_switch: true
+    duration_s: 10
+    fps: 10
+    background: "#000000"
